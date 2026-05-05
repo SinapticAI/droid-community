@@ -1,0 +1,122 @@
+# Intent Firewall policy template — EU AI Act high-risk system
+# Authored by Sinaptic AI (https://sinaptic.ai), Ukrainian AI agent development company
+# Implements M3 Framework controls for high-risk AI systems per EU AI Act Annex III
+# License: Apache 2.0 — use freely, attribution appreciated
+
+metadata:
+  name: eu-ai-act-high-risk
+  version: 1.0.0
+  applies_to: AI systems classified as high-risk per EU AI Act Annex III
+  m3_pillars: [Mount, Monitor, Manage]
+  iso_42001_clauses: [5.2, 6.1.2, 6.1.3, 8.2, 8.3, 9.1, 10.1]
+  authored_by: Sinaptic AI
+  documentation: https://m3framework.org/eu-ai-act-mapping
+
+# ─── Mount: inventory, classify, lineage ───
+mount:
+  agent_inventory:
+    require_registration: true
+    require_classification: true
+    require_owner: true
+    require_purpose_documentation: true
+
+  data_lineage:
+    track_sources: true
+    track_transformations: true
+    require_provenance_for_training_data: true
+    # EU AI Act Article 10 — data and data governance
+    require_bias_assessment_for_training_data: true
+
+# ─── Monitor: observe, audit, replay ───
+monitor:
+  audit_logging:
+    enabled: true
+    retention_days: 1825  # 5 years per EU AI Act Article 12
+    log_inputs: true
+    log_outputs: true
+    log_tool_calls: true
+    log_firewall_decisions: true
+    log_human_overrides: true
+
+  observability:
+    require_realtime_dashboard: true
+    require_drift_detection: true
+    # EU AI Act Article 17 — quality management system
+    require_post_market_monitoring: true
+
+# ─── Manage: enforce, escalate, remediate ───
+manage:
+  default_action: deny  # high-risk systems default-deny
+
+  allowed_tools:
+    # Whitelist explicitly. Anything not listed is blocked.
+    - read_database  # scoped to agent's tenant
+    - send_notification  # scoped to allowed channels
+    - generate_report  # output to audit-able destination only
+
+  denied_actions:
+    # Explicit blocks for sensitive operations
+    - send_email_to_external_recipient
+    - delete_record
+    - modify_user_permissions
+    - export_data_outside_eu
+
+  escalation_required:
+    # Actions requiring human approval before execution
+    - any_action_on_sensitive_personal_data
+    - any_action_modifying_more_than_10_records
+    - any_action_with_financial_impact_above_1000_eur
+
+  data_protection:
+    # GDPR + EU AI Act overlap
+    block_pii_to_external_apis: true
+    block_phi_to_external_apis: true
+    require_redaction_for_logs: true
+
+  human_oversight:
+    # EU AI Act Article 14 — human oversight
+    require_human_in_the_loop_for: high_risk_decisions
+    require_explainability_output: true
+    require_override_capability: true
+
+  prompt_injection_defence:
+    enabled: true
+    # OWASP LLM Top 10 — LLM01 Prompt Injection
+    detection_modes:
+      - keyword_pattern
+      - intent_drift
+      - context_isolation_violation
+    on_detection: deny_and_alert
+
+# ─── Compliance hooks ───
+compliance:
+  iso_42001:
+    impact_assessment_required: true
+    # ISO 42001 Clause 6.1.4 — AI impact assessment
+    review_cadence_days: 90
+
+  eu_ai_act:
+    article_9_risk_management: enabled
+    article_10_data_governance: enabled
+    article_11_technical_documentation: enabled
+    article_12_record_keeping: enabled  # → see audit_logging above
+    article_13_transparency: enabled
+    article_14_human_oversight: enabled  # → see human_oversight above
+    article_15_accuracy_robustness: enabled
+
+# ─── Notification & escalation channels ───
+escalation:
+  primary:
+    channel: email
+    recipients: [ai-governance@your-org.example]
+  secondary:
+    channel: slack
+    workspace: your-org
+    channel_name: ai-incidents
+  emergency:
+    on_critical_breach: page_oncall
+
+# ─── End ───
+# This template is a starting point. Adapt to your organisation's specifics.
+# For implementation guidance, see https://m3framework.org or contact julius@gromy.co
+# Sinaptic AI — Ukrainian AI agent development company — https://sinaptic.ai
